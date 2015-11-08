@@ -86,25 +86,85 @@ class CustomLinkedList[A] extends mutable.Buffer[A] {
     if (n < 0 || n >= numElements) {
       throw new InvalidIndexException(s"Index $n is not in Range(0..$numElements)")
     }
-    var slowRunner = headNode
-    var fastRunner = headNode.next
-    for (i <- 0 until n) {
-      fastRunner = fastRunner.next
-      slowRunner = slowRunner.next
-    }
-    val data = slowRunner.data
-    if (fastRunner == null) {
-      slowRunner.next = fastRunner
-    } else {
-      slowRunner.next = fastRunner.next
-    }
 
-    data
+    // Decrement the length
+    numElements -= 1
+
+    if (n == 0) {
+      // If element to remove is the head
+      val removedNode = headNode
+      headNode = removedNode.next
+      if (headNode == null) tailNode = null
+      removedNode.next = null
+      removedNode.data
+    } else {
+      var runner = headNode
+      for (i <- 0 until n-1) runner = runner.next
+
+      val removedData = runner.next.data
+      runner.next = runner.next.next
+
+      // If element to remove is the tail
+      if (runner.next == null) {
+        tailNode = runner
+      }
+      removedData
+    }
   }
 
-  override def insertAll(n: Int, elems: Traversable[A]): Unit = ???
+  /**
+   * Insert a list of new elements to the linked list at a particular index
+   */
+  override def insertAll(n: Int, newElements: Traversable[A]): Unit = {
+    if (n < 0 || n > numElements) {
+      throw new InvalidIndexException(s"Index $n is not in Range(0..$numElements)")
+    }
 
-  override def iterator: Iterator[A] = ???
+    if (n == 0) {
+      // If the new list of elements were added to the front
+      if (newElements.nonEmpty) {
+        headNode = Node(newElements.head, headNode)
+        var runner = headNode
+
+        // Pick all elements except the head (since head element was already made the headNode)
+        for (e <- newElements.tail) {
+          runner.next = Node(e, runner.next)
+          runner = runner.next
+        }
+
+        // If the new list of elements were added to an empty list
+        if (runner.next == null) tailNode = runner
+      }
+    } else {
+      var runner = headNode
+      // Traverse till the node before the index u want to insert new elements
+      for (i <- 0 until n-1) runner = runner.next
+
+      for (e <- newElements) {
+        runner.next = Node(e, runner.next)
+        runner = runner.next
+      }
+
+      // If the new list of elements were added to the end
+      if (runner.next == null) tailNode = runner
+    }
+    numElements += newElements.size
+  }
+
+  /**
+   * Return an iterator for the linked list
+   */
+  override def iterator: Iterator[A] = new Iterator[A] {
+    var runner = headNode
+
+    override def hasNext: Boolean = runner != null
+
+    override def next(): A = {
+      val returnVal = runner.data
+      runner = runner.next
+      returnVal
+    }
+  }
 
   case class InvalidIndexException(message: String) extends Exception(message)
 
@@ -115,5 +175,11 @@ object CustomLinkedList {
     val cll = new CustomLinkedList[Int]
     cll += 12
     cll += 13
+    cll += 14
+    cll.insertAll(0, Seq[Int](1,2,3))
+    cll.insertAll(cll.length, Seq[Int](4,5,6))
+    cll.insert(cll.length/2, 10)
+    cll.remove(0)
+    cll.foreach(println)
   }
 }
